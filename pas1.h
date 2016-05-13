@@ -14,11 +14,11 @@ long int LOCCTR;
 long int STARTADD;
 struct Symbol *SYMTAB;
 int length;
-int *error[8];
+int error;
 
 void pass_one_algo(char *source)//this function reads from the source code
 {
-	memset(error, 0, 8);
+	error = 0;
 	SYMTAB = malloc(100 * sizeof(struct Symbol));
 	memset(SYMTAB, 0, 100 * sizeof(struct Symbol));
 
@@ -47,19 +47,26 @@ void pass_one_algo(char *source)//this function reads from the source code
 	if (!strcmp(OPCODE, "START"))
 	{
 		if (isdigit(OPERAND))
-			error[4] = 1; //sets error flag 5
+			error = 4; //sets error flag 5
 		STARTADD = strtol(OPERAND, NULL, 16); //makes operenad starting address
 		LOCCTR = STARTADD;
 		fprintf(p, "%s", ln); //writes to intermediate
-		fprintf(p, "%s", OPCODE);
-		fprintf(p, "%X\n\n", LOCCTR);
+		fprintf(p, "%s\n", OPCODE);
+		fprintf(p, "%X\n", LOCCTR);
+		fprintf(p, "%i\n\n", error);
 	}
 	else
+	{
 		LOCCTR = 0x0;
+		error = 4;
+		fprintf(p, "%s", ln);
+		fprintf(p, "%i\n\n", error);
+	}
+
 	while (!feof(fp))
     {
 		fgets(line, 159, fp);
-		memset(error, 0, 8); //resets error flags
+		error = 0; //resets error flags
 		
 		printf("%s", line);		
 		strcpy(ln, line);
@@ -70,29 +77,32 @@ void pass_one_algo(char *source)//this function reads from the source code
 			{
 				LABEL = " ";
 				OPCODE = strtok(line, " \t");
-				OPERAND = strtok(NULL, " \t");
+				OPERAND = strtok(NULL, " \n \t");
 			}
 			else
 			{
 				LABEL = strtok(line, " \t");
 				OPCODE = strtok(NULL, " \t");
-				OPERAND = strtok(NULL, " \t");
+				OPERAND = strtok(NULL, " \n \t");
 			}
 			if (!strcmp(OPCODE, "END"))
+			{
+				fprintf(p, "%s\n", OPCODE);
 				break;
+			}
 
 			fprintf(p, "%s\n", OPCODE);
 			fprintf(p, "%s\n", OPERAND);
 			fprintf(p, "%X\n", LOCCTR);//writes locc in file
 
-			if (LABEL[0] !=  ' ') //if label is not empty
+			if (LABEL[0] != ' ') //if label is not empty
 			{
 				if (contains(LABEL, SYMTAB))
-					error[0] = 1;
+					error = 1;
 				else
 				{
 					symtab_insert(LABEL, LOCCTR, SYMTAB); //insert into SYMTAB
-					set_error(find_error(LABEL, error),error);
+					check_errors(LABEL, find_error(LABEL));
 				}
 			}
 			if (optable_contains(OPCODE)) //Search OPTABLE for OPCODE
@@ -102,14 +112,14 @@ void pass_one_algo(char *source)//this function reads from the source code
 			else if (!strcmp(OPCODE, "RESW"))
 			{
 				if (isdigit(OPERAND))
-					error[3] = 1;
+					error = 3;
 				else
 					LOCCTR += 0x03 * strtol(OPERAND, NULL, 16); //operand number
 			}
 			else if (!strcmp(OPCODE, "RESB"))
 			{
 				if (isdigit(OPCODE))
-					error[3] = 1;
+					error = 3;
 				else
 					LOCCTR += strtol(OPERAND, NULL, 10);
 			}
@@ -120,20 +130,31 @@ void pass_one_algo(char *source)//this function reads from the source code
 				else if (OPERAND[0] == 'X')
 					LOCCTR += (((int)strlen(OPERAND) - 4) * 2) - 1;
 				else
-					error[3] = 1;
+					error = 3;
 			}
 			else
-				error[2] = 1; //set error flag
+				error = 2; //set error flag
+
+			fprintf(p, "%i\n\n", error);
 		}
-		write_errors(p,error);
+		else
+			fprintf(p, "\n");
 	}
 	if (strcmp(OPCODE, "END")) //if end is missing
-		error[5] = 1;
+	{
+		error = 5;
+		fprintf(p, "%i", error);
+	}
 	
-	fprintf(p, "%s", ln);
 	length = LOCCTR - STARTADD;
 	printf("program length: %X\n", length);
-	//check for length error
+	//check for length error:
+	if (length > 32768)
+	{
+		error = 6;
+		fprintf(p, "%i", error);
+	}
+
 	fclose(fp);
 	fclose(p);
 }
