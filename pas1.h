@@ -77,13 +77,13 @@ void pass_one_algo(char *source)//this function reads from the source code
 			{
 				LABEL = " ";
 				OPCODE = strtok(line, " \t");
-				OPERAND = strtok(NULL, " \n \t");
+				OPERAND = strtok(NULL, " \t \n");
 			}
 			else
 			{
 				LABEL = strtok(line, " \t");
 				OPCODE = strtok(NULL, " \t");
-				OPERAND = strtok(NULL, " \n \t");
+				OPERAND = strtok(NULL, " \t \n");
 			}
 			if (!strcmp(OPCODE, "END"))
 			{
@@ -126,9 +126,9 @@ void pass_one_algo(char *source)//this function reads from the source code
 			else if (!strcmp(OPCODE, "BYTE"))
 			{ //find length of constant in bytes
 				if (OPERAND[0] == 'C')
-					LOCCTR += ((int)strlen(OPERAND) - 4);
+					LOCCTR += (((int)strlen(OPERAND)+1) - 4);
 				else if (OPERAND[0] == 'X')
-					LOCCTR += (((int)strlen(OPERAND) - 4) * 2) - 1;
+					LOCCTR += ((((int)strlen(OPERAND)+1) - 4) * 2) - 1;
 				else
 					error = 3;
 			}
